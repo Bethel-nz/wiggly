@@ -1,5 +1,13 @@
 {
   "name": "wiggly",
+  "version": "0.1.0",
+  "description": "a file based router for hono.js",
+  "homepage": "https://github.com/Bethel-nz/wiggly/blob/main/README.md",
+  "repository": {
+    "url": "https://github.com/Bethel-nz/wiggly"
+  },
+  "license": "MIT",
+  "author": "Bethel Nzekea",
   "scripts": {
     "dev": "tsx watch ./index.ts"
   },
