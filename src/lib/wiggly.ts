@@ -2,8 +2,6 @@ import { serve as node_serve, createAdaptorServer } from '@hono/node-server';
 import { Hono } from 'hono';
 import fs from 'fs';
 import path from 'path';
-import generate_types from '../utils/generate-types';
-import { skip } from 'node:test';
 
 class Wiggly {
   private app: Hono;
