@@ -1,4 +1,4 @@
-import { serve as node_serve, createAdaptorServer } from '@hono/node-server';
+import { serve as node_serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import fs from 'fs';
 import path from 'path';
