@@ -2,21 +2,21 @@
 
 ## Introduction
 
-`Wiggly` is a lightweight framework built on top of the Hono library that simplifies setting up a server with middleware and dynamic routing through a file-based routing system. This guide will walk you through the steps to get started with `Wiggly`, including setting up middleware, defining routes, and running the server.
+`Wiggly` is a lightweight framework built on top of the Hono library that simplifies setting up a server with middleware and dynamic routing through a file-based routing system. This guide will walk you through the steps to get started with `Wiggly`, including setting up middleware, defining routes, and running the server on both Node.js and Bun environments.
 
 ## Installation
 
 First, install the necessary dependencies:
 
 ```bash
-npm install
+npm install wiggly-js
 ```
 
 ## Setup
 
 ### Directory Structure
 
-`Wiggly` expects a specific directory structure for routes and middleware. The directory structure should look like this, each routes can have children and deeply nested children:
+`Wiggly` expects a specific directory structure for routes and middleware. The directory structure should look like this, each route can have children and deeply nested children:
 
 ```
 project-root/
@@ -45,7 +45,7 @@ project-root/
 - `routes/`: Contains all your route handlers.
   - `middleware/`: Global middleware applied to all routes.
     - `_index.ts`: Global middleware or handlers applied to the root path.
-  - `your routes/`: A subdirectory containing route handlers for `your` endpoint.
+  - `your route/`: A subdirectory containing route handlers for the `your` endpoint.
     - `_middleware.ts`: Middleware specific to the `route` endpoint.
     - `index.ts`: Handler for the `/user` endpoint.
     - `[id].ts`: Dynamic route handler for `/user/:id`.
@@ -142,11 +142,11 @@ Create a new file `index.ts` at the root of your project:
 import { Hono } from 'hono';
 import Wiggly from './src/lib/wiggly';
 
-//Wiggly's app config can be overridden with your own config refer to hono's docs: https://hono.dev/docs/
+// Initialize Wiggly with base path
 const hono_app = new Hono();
 
 // Initialize Wiggly with base path
-//middleware_dir and routes_dir are by default your /routes dir in our project roots but should incase they are different you have to specify them here
+// Middleware directory and routes directory are by default `/routes` in your project root but should be specified here if different
 const wiggle = new Wiggly({
   app: hono_app,
   base_path: '/api/v1/',
@@ -169,6 +169,26 @@ To start the server, run the following command:
 npx tsx index.ts
 ```
 
+## Server Options
+
+`Wiggly` supports running the server using either Node.js or Bun. You can specify which server to use by setting the `is_node_server` flag in the `serve` method.
+
+### Node.js Server
+
+Default option. Uses Node.js's `serve` function to start the server.
+
+```typescript
+await wiggle.serve(port, true);
+```
+
+### Bun Server
+
+To use Bun as the server, set `is_node_server` to `false`. Make sure Bun is installed and configured in your environment.
+
+```typescript
+await wiggle.serve(port, false);
+```
+
 ## API Reference
 
 ### Wiggly Class
@@ -184,7 +204,7 @@ new Wiggly(default_args: {
 });
 ```
 
-- `app`: Optional. Your instance of Hono. If not provided, a new instance is created. see [hono docs]("https://hono.dev/docs/")
+- `app`: Optional. Your instance of Hono. If not provided, a new instance is created. See [Hono docs](https://hono.dev/docs/).
 - `base_path`: The base path for all routes.
 - `middleware_dir`: Optional. Path to the global middleware directory.
 - `routes_dir`: Optional. Path to the routes directory.
@@ -195,15 +215,17 @@ new Wiggly(default_args: {
 
 Loads route handlers from the specified directory and sets up routing.
 
-- `directory`: The directory to load routes from. Defaults to the `/routes` directory or uses the `routes_dir` specified in the wiggly class config.
+- `directory`: The directory to load routes from. Defaults to the `/routes` directory or uses the `routes_dir` specified in the Wiggly class config.
 - `base_path`: The base path for the routes.
 
-##### `serve(port: number = 8080, args?: Parameters<typeof serve>): Promise<void>`
+##### `serve(port: number = 8080, is_node_server: boolean = true, node?: Parameters<typeof node_serve>, bun?: Parameters<typeof bun_serve>): Promise<void>`
 
 Starts the server on the specified port.
 
 - `port`: The port to start the server on. Defaults to `8080`.
-- `args`: Additional arguments for the `serve` function from `hono`.
+- `is_node_server`: Boolean flag to determine the server type. Set to `true` for Node.js or `false` for Bun.
+- `node`: Optional arguments for the Node.js `serve` function. These arguments are used to customize the behavior of the Node.js server.
+- `bun`: Optional arguments for the Bun `serve` function. These arguments are used to customize the behavior of the Bun server.
 
 ## Examples
 
@@ -270,4 +292,4 @@ wiggle.serve(8080);
 
 ## Conclusion
 
-This documentation provides an overview of how to set up and use the `Wiggly` framework for building a server with middleware and dynamic routing through a file-based routing system. Follow the directory structure, create your route handlers, and start your server with ease. Happy coding!
+This documentation provides an overview of how to set up and use the `Wiggly` framework for building a server with middleware and dynamic routing through a file-based routing system. Follow the directory structure, create your route handlers, and start your server with ease on either Node.js or Bun. Happy coding!
