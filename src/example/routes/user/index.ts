@@ -3,8 +3,9 @@ import { Context } from 'hono';
 export default {
   get: (c: Context) => {
     const exampleVariable = c.get('exampleVariable');
+    const url = c.get('url');
     return c.json({
-      message: `message from middleware: ${exampleVariable}`,
+      message: `message from middleware: ${exampleVariable}, ${url}`,
     });
   },
   post: (c: Context) => {

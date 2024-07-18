@@ -2,12 +2,12 @@ import { serve as node_serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import fs from 'fs';
 import path from 'path';
+import generate_types from '../utils/generate-types';
 
 class Wiggly {
   private app: Hono;
   private default_dir: string;
   private default_middleware_dir: string;
-  private base_path: string;
 
   constructor(default_args: {
     app?: Hono;
@@ -19,7 +19,6 @@ class Wiggly {
     this.app = default_args['app']
       ? default_args['app']
       : new Hono(default_args['args']).basePath(default_args['base_path']);
-    this.base_path = default_args['base_path'];
 
     const currentDir = process.cwd();
     this.default_middleware_dir = default_args.middleware_dir
@@ -28,6 +27,8 @@ class Wiggly {
     this.default_dir = default_args.routes_dir
       ? path.resolve(currentDir, default_args.routes_dir)
       : '';
+
+    this.applyGlobalMiddleware();
   }
 
   private is_valid_file(file_path: string): boolean {
@@ -67,7 +68,6 @@ class Wiggly {
         const route_path = path.basename(path.dirname(file_path));
 
         if (typeof middleware._ === 'function') {
-          console.log(middleware._);
           this.app.use(`/${route_path}`, middleware._);
         }
       }
@@ -75,11 +75,34 @@ class Wiggly {
   }
   private applyMiddleware(directory: string, base_path: string = '/'): void {
     const middlewarePath = path.join(directory, '_middleware.ts');
-    if (fs.existsSync(middlewarePath) && this.is_valid_file(middlewarePath)) {
-      const middleware = require(middlewarePath).default._;
-      if (typeof middleware === 'function') {
-        this.app.use(base_path, middleware);
+    const indexMiddlewarePath = path.join(directory, '_index.ts');
+
+    [middlewarePath, indexMiddlewarePath].forEach((middlewareFilePath) => {
+      if (
+        fs.existsSync(middlewareFilePath) &&
+        this.is_valid_file(middlewareFilePath)
+      ) {
+        const middleware = require(middlewareFilePath).default._;
+        if (typeof middleware === 'function') {
+          this.app.use(base_path, middleware);
+        }
       }
+    });
+  }
+
+  private applyGlobalMiddleware(): void {
+    if (this.default_middleware_dir) {
+      const files = fs.readdirSync(this.default_middleware_dir);
+
+      files.forEach((file) => {
+        const file_path = path.join(this.default_middleware_dir, file);
+        if (this.is_valid_file(file_path) && this.is_middleware_file(file)) {
+          const middleware = require(file_path).default._;
+          if (typeof middleware === 'function') {
+            this.app.use('*', middleware);
+          }
+        }
+      });
     }
   }
 
@@ -157,6 +180,7 @@ class Wiggly {
         port,
         ...args,
       });
+
       console.log(`Server Running On http://localhost:${port}`);
     } catch (error) {
       console.error('error');

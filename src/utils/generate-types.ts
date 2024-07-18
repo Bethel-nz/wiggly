@@ -1,8 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 
-const routes_dir = path.join(__dirname, 'routes');
-
 function parse_route_segment(segment: string): string {
   if (segment.startsWith('[') && segment.endsWith(']')) {
     if (segment.startsWith('[...') && segment.endsWith(']')) {
