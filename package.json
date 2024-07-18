@@ -1,5 +1,5 @@
 {
-  "name": "wiggly",
+  "name": "wiggly-js",
   "version": "1.0.0",
   "description": "File-based routing framework based on Hono.js",
   "scripts": {
