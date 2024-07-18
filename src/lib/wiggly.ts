@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import fs from 'fs';
 import path from 'path';
 
+console.log(__dirname, path.resolve(__dirname, '../../'));
 class Wiggly {
   private app: Hono;
   private default_dir: string;
@@ -10,14 +11,15 @@ class Wiggly {
   private base_path: string;
 
   constructor(default_args: {
+    app?: Hono;
     base_path: string;
     middleware_dir?: string;
     routes_dir?: string;
     args?: Hono;
   }) {
-    this.app = new Hono(default_args['args']).basePath(
-      default_args['base_path']
-    );
+    this.app = default_args['app']
+      ? default_args['app']
+      : new Hono(default_args['args']).basePath(default_args['base_path']);
     this.base_path = default_args['base_path'];
 
     const currentDir = path.resolve(__dirname, '../../');
