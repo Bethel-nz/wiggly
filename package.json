@@ -1,23 +1,30 @@
 {
   "name": "wiggly",
-  "version": "0.1.0",
-  "description": "a file based router for hono.js",
+  "version": "1.0.0",
+  "description": "File-based routing framework based on Hono.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch ./src/example/index.ts",
+    "pub": "tsc && npm version patch --force && npm publish"
+  },
   "homepage": "https://github.com/Bethel-nz/wiggly/blob/main/README.md",
   "repository": {
-    "url": "https://github.com/Bethel-nz/wiggly"
+    "url": "git+https://github.com/Bethel-nz/wiggly.git"
   },
   "license": "MIT",
   "author": "Bethel Nzekea",
-  "scripts": {
-    "dev": "tsx watch ./index.ts"
-  },
   "dependencies": {
     "@hono/node-server": "^1.12.0",
     "chokidar": "^3.6.0",
-    "hono": "^4.5.0"
+    "hono": "^4.5.0",
+    "typescript": "^5.5.3"
   },
   "devDependencies": {
     "@types/node": "^20.11.17",
     "tsx": "^4.7.1"
-  }
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "dist/index.js"
 }

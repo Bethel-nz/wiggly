@@ -135,25 +135,21 @@ class Wiggly {
   private convertToHonoRoute(filePath: string): string {
     const routeName = path.basename(filePath, path.extname(filePath));
 
-    // Ignore files starting with '_'
     if (routeName.startsWith('_')) return '';
 
-    // Determine if the file is an index file
     const isIndexFile = routeName === 'index';
 
-    // Create the route path from the directory structure and file name
     const relativePath = path.relative(this.default_dir, filePath);
     const dirPath = path.dirname(relativePath);
     const pathSegments = dirPath
       .split(path.sep)
       .map(this.parse_route_segment)
-      .filter(Boolean); // Filter out empty segments
+      .filter(Boolean);
 
-    // Construct the final route path
     const finalRouteName = isIndexFile ? '' : `/${routeName}`;
     const routePath = `/${[...pathSegments, finalRouteName].join('/')}`
-      .replace(/\/+/g, '/') // Remove duplicate slashes
-      .replace(/\/$/, ''); // Remove trailing slash
+      .replace(/\/+/g, '/')
+      .replace(/\/$/, '');
 
     return routePath.replace(/\[(\w+)\]/g, ':$1');
   }
