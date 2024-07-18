@@ -14,11 +14,10 @@ class Wiggly {
     base_path?: string;
     middleware_dir?: string;
     routes_dir?: string;
-    args?: Hono;
   }) {
     this.app = default_args['app']
       ? default_args['app']
-      : new Hono(default_args['args']).basePath(default_args['base_path']!);
+      : new Hono().basePath(default_args['base_path']!);
 
     const currentDir = process.cwd();
     this.default_middleware_dir = default_args.middleware_dir
@@ -50,28 +49,6 @@ class Wiggly {
     );
   }
 
-  middleware(directory: string = this.default_middleware_dir): void {
-    const files = fs.readdirSync(directory);
-
-    files.forEach((file) => {
-      const file_path = path.join(directory, file);
-      const stat = fs.statSync(file_path);
-
-      if (stat.isDirectory()) {
-        this.middleware(file_path);
-      } else if (
-        this.is_valid_file(file_path) &&
-        this.is_middleware_file(file)
-      ) {
-        const middleware = require(file_path).default;
-        const route_path = path.basename(path.dirname(file_path));
-
-        if (typeof middleware._ === 'function') {
-          this.app.use(`/${route_path}`, middleware._);
-        }
-      }
-    });
-  }
   private applyMiddleware(directory: string, base_path: string = '/'): void {
     const middlewarePath = path.join(directory, '_middleware.ts');
     const indexMiddlewarePath = path.join(directory, '_index.ts');
@@ -129,7 +106,10 @@ class Wiggly {
       return spread ? `:${param}*` : `:${param}`;
     });
   }
-  routes(directory: string = this.default_dir, base_path: string = ''): void {
+  build_routes(
+    directory: string = this.default_dir,
+    base_path: string = ''
+  ): void {
     if (!fs.existsSync(directory)) {
       console.log(
         `Directory "${directory}" does not exist. Please specify a valid routes directory in the Wiggly configuration. or make a "/routes" or "/src/routes" in your root folder`
@@ -143,7 +123,7 @@ class Wiggly {
 
       if (stat.isDirectory()) {
         const segment = this.parse_route_segment(file);
-        this.routes(file_path, `/${segment}`);
+        this.build_routes(file_path, `/${segment}`);
       } else if (this.is_valid_file(file_path)) {
         const route = require(file_path).default;
         const base_name = `/${path.basename(path.dirname(file_path))}`;

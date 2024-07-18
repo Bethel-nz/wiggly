@@ -8,5 +8,5 @@ const wiggle = new Wiggly({
   routes_dir: 'src/example/routes',
 });
 
-wiggle.serve().catch(console.error);
-wiggle.routes();
+wiggle.build_routes();
+wiggle.serve();
