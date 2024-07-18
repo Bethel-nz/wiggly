@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import fs from 'fs';
 import path from 'path';
 import chokidar from 'chokidar';
+import { serve as bun_serve } from 'bun';
 /**
  * The `Wiggly` class is a file-based routing system for the Hono.js framework.
  * It dynamically loads route handlers and middleware from specified directories and applies them to the Hono application instance.
@@ -232,21 +233,36 @@ class Wiggly {
     }
     /**
      * Starts the server and listens for incoming HTTP requests.
-     * Uses the Hono `serve` function to start the server on the specified port.
-     * Initializes the file watcher to monitor changes in middleware and routes directories.
+     * Depending on the `is_node_server` flag, it uses either the Node.js `serve` function or the Bun `serve` function to start the server on the specified port.
+     * Initializes a file watcher to monitor changes in the middleware and routes directories.
+     *
      * @param port - The port number on which the server will listen. Defaults to 8080.
-     * @param args - Optional arguments to pass to the Hono `serve` function. These can be used to customize server behavior.
+     * @param is_node_server - A boolean flag indicating whether to use the Node.js server (`true`) or Bun server (`false`). Defaults to `true`.
+     * @param node - Optional arguments to pass to the Node.js `serve` function. These arguments are used to customize the behavior of the Node.js server.
+     * @param bun - Optional arguments to pass to the Bun `serve` function. These arguments are used to customize the behavior of the Bun server.
+     *
      * @returns A promise that resolves when the server starts successfully.
+     *
+     * @throws Will throw an error if the server fails to start.
      */
-    async serve(port = 8080, args) {
+    async serve(port = 8080, is_node_server = true, node, bun) {
         try {
-            this.applyGlobalMiddleware(); // Ensure middleware is applied before starting
-            this.build_routes(); // Ensure routes are built before starting
-            await node_serve({
-                fetch: this.app.fetch,
-                port,
-                ...args,
-            });
+            this.applyGlobalMiddleware();
+            this.build_routes();
+            if (is_node_server) {
+                await node_serve({
+                    fetch: this.app.fetch,
+                    port,
+                    ...node,
+                });
+            }
+            else {
+                await bun_serve({
+                    fetch: this.app.fetch,
+                    port,
+                    ...bun,
+                });
+            }
             this.startFileWatcher(); // Start file watcher after server starts
             console.log(`Server Running On http://localhost:${port}`);
         }
