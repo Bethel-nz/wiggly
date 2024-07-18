@@ -16,32 +16,41 @@ npm install
 
 ### Directory Structure
 
-`Wiggly` expects a specific directory structure for routes and middleware. The directory structure should look like this:
+`Wiggly` expects a specific directory structure for routes and middleware. The directory structure should look like this, each routes can have children and deeply nested children:
 
 ```
 project-root/
 ├── routes/
 │   ├── middleware/
 │   │   ├── _index.ts
-│   ├── user/
+│   ├── your route/
 │   │   ├── _middleware.ts
 │   │   ├── index.ts
 │   │   └── [id].ts
-│   ├── product/
+│   │   └── [id]/child dynamic route/
+│   │       └── index.ts
+|   |          └── /details
+|   |               └── index.ts
+│   ├── your second route/
 │   │   ├── _middleware.ts
 │   │   ├── index.ts
 │   │   └── [id].ts
+|   ├── more routes /
+│   │         ├── _middleware.ts
+│   │         ├── index.ts
+│   │         └── [id].ts
 └── index.ts
 ```
 
 - `routes/`: Contains all your route handlers.
   - `middleware/`: Global middleware applied to all routes.
     - `_index.ts`: Global middleware or handlers applied to the root path.
-  - `user/`: A subdirectory containing route handlers for the `user` endpoint.
-    - `_middleware.ts`: Middleware specific to the `user` endpoint.
+  - `your routes/`: A subdirectory containing route handlers for `your` endpoint.
+    - `_middleware.ts`: Middleware specific to the `route` endpoint.
     - `index.ts`: Handler for the `/user` endpoint.
     - `[id].ts`: Dynamic route handler for `/user/:id`.
-  - Similar structure for other endpoints like `product/`.
+    - `[id]/child dynamic route/`: A deeply nested directory with its own `index.ts` handler.
+  - Similar structure for other endpoints like `more routes/`.
 
 ### Route Handlers
 
@@ -78,6 +87,19 @@ export default {
   get: (c: Context) => {
     const id = c.req.param('id');
     return c.json({ message: `User ID: ${id}` });
+  },
+};
+```
+
+Example: `routes/user/[id]/projects/index.ts`
+
+```typescript
+import { Context } from 'hono';
+
+export default {
+  get: (c: Context) => {
+    const id = c.req.param('id');
+    return c.json({ message: `Projects for User ID: ${id}` });
   },
 };
 ```
@@ -120,8 +142,13 @@ Create a new file `index.ts` at the root of your project:
 import { Hono } from 'hono';
 import Wiggly from './src/lib/wiggly';
 
+//Wiggly's app config can be overridden with your own config refer to hono's docs: https://hono.dev/docs/
+const hono_app = new Hono();
+
 // Initialize Wiggly with base path
+//middleware_dir and routes_dir are by default your /routes dir in our project roots but should incase they are different you have to specify them here
 const wiggle = new Wiggly({
+  app: hono_app,
   base_path: '/api/v1/',
   middleware_dir: 'src/example/routes/middleware',
   routes_dir: 'src/example/routes',
@@ -183,8 +210,7 @@ Starts the server on the specified port.
 ### Example 1: Basic Setup
 
 ```typescript
-import { Hono } from 'hono';
-import Wiggly from './src/lib/wiggly';
+import Wiggly from 'wiggly';
 
 // Initialize Wiggly with base path
 const wiggle = new Wiggly({
@@ -194,9 +220,7 @@ const wiggle = new Wiggly({
 });
 
 wiggle.build_routes();
-wiggle.serve(8080).then(() => {
-  console.log('Server is running on http://localhost:8080');
-});
+wiggle.serve(8080);
 ```
 
 ### Example 2: Custom Route Handler
@@ -223,6 +247,10 @@ export default {
 };
 ```
 
+### Example 3: Deeply Nested Routes
+
+`Wiggly` supports deeply nested routes. If you have a file like `routes/user/[id]/projects/index.ts`, it will work for both `/user/:id` and `/user/:id/projects` as long as `[id]/projects` has its own `index.ts`. Just pass your parameter as needed.
+
 Start the server:
 
 ```typescript
@@ -237,9 +265,7 @@ const wiggle = new Wiggly({
 });
 
 wiggle.build_routes();
-wiggle.serve(8080).then(() => {
-  console.log('Server is running on http://localhost:8080');
-});
+wiggle.serve(8080);
 ```
 
 ## Conclusion
