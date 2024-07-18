@@ -11,23 +11,22 @@ class Wiggly {
 
   constructor(default_args: {
     app?: Hono;
-    base_path: string;
+    base_path?: string;
     middleware_dir?: string;
     routes_dir?: string;
     args?: Hono;
   }) {
     this.app = default_args['app']
       ? default_args['app']
-      : new Hono(default_args['args']).basePath(default_args['base_path']);
+      : new Hono(default_args['args']).basePath(default_args['base_path']!);
 
     const currentDir = process.cwd();
     this.default_middleware_dir = default_args.middleware_dir
       ? path.resolve(currentDir, default_args.middleware_dir)
-      : '';
+      : `${process.cwd()}/routes/middleware`;
     this.default_dir = default_args.routes_dir
       ? path.resolve(currentDir, default_args.routes_dir)
-      : '';
-
+      : `${process.cwd()}/routes`;
     this.applyGlobalMiddleware();
   }
 
@@ -86,12 +85,17 @@ class Wiggly {
         if (typeof middleware === 'function') {
           this.app.use(base_path, middleware);
         }
+      } else {
+        return;
       }
     });
   }
 
   private applyGlobalMiddleware(): void {
-    if (this.default_middleware_dir) {
+    if (
+      this.default_middleware_dir &&
+      fs.existsSync(this.default_middleware_dir)
+    ) {
       const files = fs.readdirSync(this.default_middleware_dir);
 
       files.forEach((file) => {
@@ -103,6 +107,8 @@ class Wiggly {
           }
         }
       });
+    } else {
+      return;
     }
   }
 
@@ -124,6 +130,12 @@ class Wiggly {
     });
   }
   routes(directory: string = this.default_dir, base_path: string = ''): void {
+    if (!fs.existsSync(directory)) {
+      console.log(
+        `Directory "${directory}" does not exist. Please specify a valid routes directory in the Wiggly configuration. or make a "/routes" or "/src/routes" in your root folder`
+      );
+      return;
+    }
     const files = fs.readdirSync(directory);
     files.forEach((file) => {
       const file_path = path.join(directory, file);
