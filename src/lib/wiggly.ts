@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import fs from 'fs';
 import path from 'path';
 import generate_types from '../utils/generate-types';
-
+import chokidar from 'chokidar';
 class Wiggly {
   private app: Hono;
   private default_dir: string;
@@ -56,7 +56,8 @@ class Wiggly {
     [middlewarePath, indexMiddlewarePath].forEach((middlewareFilePath) => {
       if (
         fs.existsSync(middlewareFilePath) &&
-        this.is_valid_file(middlewareFilePath)
+        this.is_valid_file(middlewareFilePath) &&
+        fs.statSync(middlewareFilePath).size > 0 // Check if file is not empty
       ) {
         const middleware = require(middlewareFilePath).default._;
         if (typeof middleware === 'function') {
@@ -67,7 +68,6 @@ class Wiggly {
       }
     });
   }
-
   private applyGlobalMiddleware(): void {
     if (
       this.default_middleware_dir &&
@@ -77,7 +77,11 @@ class Wiggly {
 
       files.forEach((file) => {
         const file_path = path.join(this.default_middleware_dir, file);
-        if (this.is_valid_file(file_path) && this.is_middleware_file(file)) {
+        if (
+          this.is_valid_file(file_path) &&
+          this.is_middleware_file(file) &&
+          fs.statSync(file_path).size > 0 // Check if file is not empty
+        ) {
           const middleware = require(file_path).default._;
           if (typeof middleware === 'function') {
             this.app.use('*', middleware);
@@ -94,15 +98,14 @@ class Wiggly {
     if (route_name.startsWith('_')) return '';
     const isIndexFile = route_name.startsWith('index');
 
-    const finalRouteName = isIndexFile
-      ? path.basename(path.dirname(file_path))
-      : route_name;
+    const relativePath = path.relative(this.default_dir, file_path);
+    const dirPath = path.dirname(relativePath);
+    const pathSegments = dirPath.split(path.sep).map(this.parse_route_segment);
 
-    const route_path = finalRouteName.match(/\[\w+\]/)
-      ? `${base_path}/${finalRouteName}`
-      : base_path;
+    const finalRouteName = isIndexFile ? '' : `/${route_name}`;
+    const routePath = pathSegments.join('/') + finalRouteName;
 
-    return route_path.replace(/\[(\.\.\.)?(\w+)\]/g, (_, spread, param) => {
+    return routePath.replace(/\[(\.\.\.)?(\w+)\]/g, (_, spread, param) => {
       return spread ? `:${param}*` : `:${param}`;
     });
   }
@@ -124,7 +127,7 @@ class Wiggly {
       if (stat.isDirectory()) {
         const segment = this.parse_route_segment(file);
         this.build_routes(file_path, `/${segment}`);
-      } else if (this.is_valid_file(file_path)) {
+      } else if (this.is_valid_file(file_path) && stat.size > 0) {
         const route = require(file_path).default;
         const base_name = `/${path.basename(path.dirname(file_path))}`;
 
@@ -158,6 +161,20 @@ class Wiggly {
             }
           }
         });
+      } else return;
+    });
+  }
+
+  private startFileWatcher(): void {
+    const watcher = chokidar.watch([
+      this.default_middleware_dir,
+      this.default_dir,
+    ]);
+    watcher.on('all', (event, path) => {
+      if (['add', 'change', 'unlink'].includes(event)) {
+        this.app = new Hono(this.app);
+        this.applyGlobalMiddleware();
+        this.build_routes();
       }
     });
   }
@@ -172,6 +189,7 @@ class Wiggly {
         port,
         ...args,
       });
+      this.startFileWatcher();
 
       console.log(`Server Running On http://localhost:${port}`);
     } catch (error) {

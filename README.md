@@ -9,7 +9,7 @@
 First, install the necessary dependencies:
 
 ```bash
-npm install hono @hono/node-server
+npm install
 ```
 
 ## Setup
