@@ -112,6 +112,11 @@ declare class Wiggly {
      *
      * @throws Will throw an error if the server fails to start.
      */
-    serve(port?: number, is_node_server?: boolean, node?: Parameters<typeof node_serve>, bun?: Parameters<typeof bun_serve>): Promise<void>;
+    serve(args: {
+        port: number;
+        is_node_server: boolean;
+        node?: Parameters<typeof node_serve>;
+        bun?: Parameters<typeof bun_serve>;
+    }): Promise<void>;
 }
 export default Wiggly;

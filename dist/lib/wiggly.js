@@ -245,26 +245,26 @@ class Wiggly {
      *
      * @throws Will throw an error if the server fails to start.
      */
-    async serve(port = 8080, is_node_server = true, node, bun) {
+    async serve(args) {
         try {
             this.applyGlobalMiddleware();
             this.build_routes();
-            if (is_node_server) {
+            if (args.is_node_server) {
                 await node_serve({
                     fetch: this.app.fetch,
-                    port,
-                    ...node,
+                    port: args.port,
+                    ...args.node,
                 });
             }
             else {
                 await bun_serve({
                     fetch: this.app.fetch,
-                    port,
-                    ...bun,
+                    port: args.port,
+                    ...args.node,
                 });
             }
             this.startFileWatcher(); // Start file watcher after server starts
-            console.log(`Server Running On http://localhost:${port}`);
+            console.log(`Server Running On http://localhost:${args.port}`);
         }
         catch (error) {
             console.error(error);

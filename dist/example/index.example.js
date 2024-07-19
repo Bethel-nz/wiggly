@@ -6,4 +6,7 @@ const wiggle = new Wiggly({
     routes_dir: 'src/example/routes',
 });
 wiggle.build_routes();
-wiggle.serve();
+wiggle.serve({
+    port: 8080,
+    is_node_server: true,
+});
