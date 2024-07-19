@@ -9,7 +9,7 @@
 First, install the necessary dependencies:
 
 ```bash
-npm install wiggly-js
+npm install wiggly.js
 ```
 
 ## Setup
