@@ -3,7 +3,6 @@ import { Hono } from 'hono';
 import fs from 'fs';
 import path from 'path';
 import chokidar from 'chokidar';
-import { serve as bun_serve } from 'bun';
 /**
  * The `Wiggly` class is a file-based routing system for the Hono.js framework.
  * It dynamically loads route handlers and middleware from specified directories and applies them to the Hono application instance.
@@ -122,6 +121,9 @@ class Wiggly {
         const routePath = `/${[...pathSegments, finalRouteName].join('/')}`
             .replace(/\/+/g, '/')
             .replace(/\/$/, '');
+        if (routePath === '' || routePath === '/') {
+            return '/';
+        }
         return routePath.replace(/\[(\w+)\]/g, ':$1');
     }
     /**
@@ -253,14 +255,12 @@ class Wiggly {
                 await node_serve({
                     fetch: this.app.fetch,
                     port: args.port,
-                    ...args.node,
                 });
             }
             else {
-                await bun_serve({
+                await Bun.serve({
                     fetch: this.app.fetch,
                     port: args.port,
-                    ...args.node,
                 });
             }
             this.startFileWatcher(); // Start file watcher after server starts

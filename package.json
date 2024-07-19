@@ -1,10 +1,10 @@
 {
   "name": "wiggly.js",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "File-based routing framework based on Hono.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch ./src/example/index.ts",
+    "dev": "tsx watch ./src/example/index.example.ts",
     "pub": "tsc && npm version patch --force && npm publish"
   },
   "homepage": "https://github.com/Bethel-nz/wiggly/blob/main/README.md",
@@ -21,7 +21,7 @@
     "typescript": "^5.5.3"
   },
   "devDependencies": {
-    "@types/bun": "^1.1.6",
+    "@types/bun": "latest",
     "@types/node": "^20.14.11",
     "tsx": "^4.16.2"
   },

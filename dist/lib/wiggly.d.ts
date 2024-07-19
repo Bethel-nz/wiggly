@@ -1,6 +1,4 @@
-import { serve as node_serve } from '@hono/node-server';
 import { Hono } from 'hono';
-import { serve as bun_serve } from 'bun';
 /**
  * The `Wiggly` class is a file-based routing system for the Hono.js framework.
  * It dynamically loads route handlers and middleware from specified directories and applies them to the Hono application instance.
@@ -115,8 +113,6 @@ declare class Wiggly {
     serve(args: {
         port: number;
         is_node_server: boolean;
-        node?: Parameters<typeof node_serve>;
-        bun?: Parameters<typeof bun_serve>;
     }): Promise<void>;
 }
 export default Wiggly;

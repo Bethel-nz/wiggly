@@ -6,7 +6,7 @@
     "outDir": "./dist",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node"],
+    "types": ["node", "bun"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "declaration": true,

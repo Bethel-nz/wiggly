@@ -3,7 +3,6 @@ import { Hono } from 'hono';
 import fs from 'fs';
 import path from 'path';
 import chokidar from 'chokidar';
-import { serve as bun_serve } from 'bun';
 
 /**
  * The `Wiggly` class is a file-based routing system for the Hono.js framework.
@@ -34,6 +33,7 @@ class Wiggly {
       : new Hono().basePath(default_args.base_path!);
 
     const currentDir = process.cwd();
+
     this.default_middleware_dir = default_args.middleware_dir
       ? path.resolve(currentDir, default_args.middleware_dir)
       : `${process.cwd()}/routes/middleware`;
@@ -151,6 +151,10 @@ class Wiggly {
     const routePath = `/${[...pathSegments, finalRouteName].join('/')}`
       .replace(/\/+/g, '/')
       .replace(/\/$/, '');
+
+    if (routePath === '' || routePath === '/') {
+      return '/';
+    }
 
     return routePath.replace(/\[(\w+)\]/g, ':$1');
   }
@@ -295,12 +299,7 @@ class Wiggly {
    *
    * @throws Will throw an error if the server fails to start.
    */
-  async serve(args: {
-    port: number;
-    is_node_server: boolean;
-    node?: Parameters<typeof node_serve>;
-    bun?: Parameters<typeof bun_serve>;
-  }): Promise<void> {
+  async serve(args: { port: number; is_node_server: boolean }): Promise<void> {
     try {
       this.applyGlobalMiddleware();
       this.build_routes();
@@ -309,13 +308,11 @@ class Wiggly {
         await node_serve({
           fetch: this.app.fetch,
           port: args.port,
-          ...args.node,
         });
       } else {
-        await bun_serve({
+        await Bun.serve({
           fetch: this.app.fetch,
           port: args.port,
-          ...args.node,
         });
       }
 
