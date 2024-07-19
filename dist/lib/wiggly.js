@@ -1,25 +1,12 @@
-import { serve as node_serve } from '@hono/node-server';
-import { Hono } from 'hono';
 import fs from 'fs';
 import path from 'path';
 import chokidar from 'chokidar';
-/**
- * The `Wiggly` class is a file-based routing system for the Hono.js framework.
- * It dynamically loads route handlers and middleware from specified directories and applies them to the Hono application instance.
- * @class Wiggly
- */
+import { serve as node_serve } from '@hono/node-server';
+import { Hono } from 'hono';
 class Wiggly {
     app;
     default_dir;
     default_middleware_dir;
-    /**
-     * Creates an instance of the `Wiggly` class.
-     * @param default_args - Configuration object for initializing the `Wiggly` instance.
-     * @param default_args.app - Optional Hono application instance to use. If not provided, a new instance will be created.
-     * @param default_args.base_path - Optional base path to set for the Hono application.
-     * @param default_args.middleware_dir - Optional directory path for middleware files.
-     * @param default_args.routes_dir - Optional directory path for route files.
-     */
     constructor(default_args) {
         this.app = default_args.app
             ? default_args.app
@@ -33,39 +20,18 @@ class Wiggly {
             : `${process.cwd()}/routes`;
         this.applyGlobalMiddleware();
     }
-    /**
-     * Checks if a given file path has a valid extension (.js or .ts).
-     * @param file_path - The path of the file to check.
-     * @returns `true` if the file has a valid extension, `false` otherwise.
-     */
     is_valid_file(file_path) {
         return ['.js', '.ts'].includes(path.extname(file_path));
     }
-    /**
-     * Parses a route segment from a file or directory name.
-     * Converts segments enclosed in square brackets to a parameterized format (e.g., `[id]` to `:id`).
-     * @param segment - The route segment to parse.
-     * @returns The parsed route segment.
-     */
     parse_route_segment(segment) {
         if (segment.startsWith('[') && segment.endsWith(']')) {
             return `:${segment.slice(1, -1)}`;
         }
         return segment;
     }
-    /**
-     * Checks if a given file name is a middleware file based on its name.
-     * @param file_name - The name of the file to check.
-     * @returns `true` if the file is a middleware file, `false` otherwise.
-     */
     is_middleware_file(file_name) {
         return (file_name.startsWith('_middleware') || file_name.startsWith('_index'));
     }
-    /**
-     * Applies middleware to the specified directory and path.
-     * @param directory - The directory containing middleware files.
-     * @param basePath - The base path for the middleware application.
-     */
     applyMiddleware(directory, basePath = '/') {
         const middlewareFiles = [
             path.join(directory, '_middleware.ts'),
@@ -77,15 +43,11 @@ class Wiggly {
                 fs.statSync(filePath).size > 0) {
                 const middleware = require(filePath).default._;
                 if (typeof middleware === 'function') {
-                    this.app.use(`/${path.relative(this.default_dir, directory)}/*`, middleware);
+                    this.app.use(`${basePath}/*`, middleware);
                 }
             }
         });
     }
-    /**
-     * Applies global middleware functions from files in the default middleware directory.
-     * Middleware files must be named `_middleware.ts` or `_index.ts`.
-     */
     applyGlobalMiddleware() {
         if (fs.existsSync(this.default_middleware_dir)) {
             fs.readdirSync(this.default_middleware_dir).forEach((file) => {
@@ -101,11 +63,6 @@ class Wiggly {
             });
         }
     }
-    /**
-     * Converts a file path to a Hono route path.
-     * @param filePath - The path of the file to convert.
-     * @returns The Hono route path corresponding to the file.
-     */
     convertToHonoRoute(filePath) {
         const routeName = path.basename(filePath, path.extname(filePath));
         if (routeName.startsWith('_'))
@@ -121,20 +78,14 @@ class Wiggly {
         const routePath = `/${[...pathSegments, finalRouteName].join('/')}`
             .replace(/\/+/g, '/')
             .replace(/\/$/, '');
-        if (routePath === '' || routePath === '/') {
+        // Handle root index file
+        if (routePath === '/' || routePath === '/.' || routePath === '')
             return '/';
-        }
         return routePath.replace(/\[(\w+)\]/g, ':$1');
     }
-    /**
-     * Builds routes based on files in the specified directory.
-     * Handles both directories and individual files, applying middleware and route handlers.
-     * @param directory - The directory to build routes from.
-     * @param base_path - Optional base path to prepend to all routes.
-     */
     build_routes(directory = this.default_dir, base_path = '') {
         if (!fs.existsSync(directory)) {
-            console.log(`Directory "${directory}" does not exist. Please specify a valid routes directory in the Wiggly configuration or create a "/routes" or "/src/routes" folder in your root directory.`);
+            console.log(`Directory "${directory}" does not exist.`);
             return;
         }
         const files = fs.readdirSync(directory);
@@ -149,32 +100,17 @@ class Wiggly {
             }
         });
     }
-    /**
-     * Handles route directories, including nested directories and index files.
-     * @param dirPath - The path of the directory to handle.
-     * @param basePath - The base path to prepend to routes within the directory.
-     */
     handleDirectory(dirPath, basePath) {
         const segment = this.parse_route_segment(path.basename(dirPath));
         this.build_routes(dirPath, `${basePath}/${segment}`);
         const indexPath = path.join(dirPath, 'index.ts');
         if (fs.existsSync(indexPath) && this.is_valid_file(indexPath)) {
-            this.processRouteFile(indexPath, dirPath);
+            this.processRouteFile(indexPath, basePath);
         }
     }
-    /**
-     * Handles individual route files.
-     * @param filePath - The path of the file to handle.
-     * @param baseDir - The base directory path to apply middleware.
-     */
     handleFile(filePath, baseDir) {
         this.processRouteFile(filePath, baseDir);
     }
-    /**
-     * Processes a route file to apply middleware and route handlers.
-     * @param filePath - The path of the route file.
-     * @param baseDir - The base directory path to apply middleware.
-     */
     processRouteFile(filePath, baseDir) {
         const route = require(filePath).default;
         const route_path = this.convertToHonoRoute(filePath);
@@ -186,12 +122,6 @@ class Wiggly {
             }
         });
     }
-    /**
-     * Applies HTTP route methods to the Hono app.
-     * @param method - The HTTP method (GET, POST, etc.).
-     * @param routePath - The path for the route.
-     * @param handler - The handler function for the route.
-     */
     applyRouteMethod(method, routePath, handler) {
         switch (method.toLowerCase()) {
             case 'get':
@@ -216,11 +146,6 @@ class Wiggly {
                 console.warn(`Unknown method ${method}`);
         }
     }
-    /**
-     * Starts a file watcher to monitor changes in the middleware and routes directories.
-     * The watcher listens for file additions, modifications, and deletions.
-     * When changes are detected, routes are rebuilt, and global middleware is reapplied without reinitializing the Hono application.
-     */
     startFileWatcher() {
         const watcher = chokidar.watch([
             this.default_middleware_dir,
@@ -228,25 +153,11 @@ class Wiggly {
         ]);
         watcher.on('all', (event, path) => {
             if (['add', 'change', 'unlink'].includes(event)) {
-                this.applyGlobalMiddleware(); // Reapply global middleware
-                this.build_routes(); // Rebuild routes
+                this.applyGlobalMiddleware();
+                this.build_routes();
             }
         });
     }
-    /**
-     * Starts the server and listens for incoming HTTP requests.
-     * Depending on the `is_node_server` flag, it uses either the Node.js `serve` function or the Bun `serve` function to start the server on the specified port.
-     * Initializes a file watcher to monitor changes in the middleware and routes directories.
-     *
-     * @param port - The port number on which the server will listen. Defaults to 8080.
-     * @param is_node_server - A boolean flag indicating whether to use the Node.js server (`true`) or Bun server (`false`). Defaults to `true`.
-     * @param node - Optional arguments to pass to the Node.js `serve` function. These arguments are used to customize the behavior of the Node.js server.
-     * @param bun - Optional arguments to pass to the Bun `serve` function. These arguments are used to customize the behavior of the Bun server.
-     *
-     * @returns A promise that resolves when the server starts successfully.
-     *
-     * @throws Will throw an error if the server fails to start.
-     */
     async serve(args) {
         try {
             this.applyGlobalMiddleware();
@@ -263,7 +174,7 @@ class Wiggly {
                     port: args.port,
                 });
             }
-            this.startFileWatcher(); // Start file watcher after server starts
+            this.startFileWatcher();
             console.log(`Server Running On http://localhost:${args.port}`);
         }
         catch (error) {
