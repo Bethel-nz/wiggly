@@ -9,8 +9,10 @@
     "types": ["node"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "typeRoots": ["./types/wiggly-js.d.ts", "./node_modules/@types"]
+    "declaration": true,
+    "declarationDir": "./dist",
+    "typeRoots": ["src/types", "./node_modules/@types"]
   },
-  "include": ["src/**/*.ts", "./index.ts"],
+  "include": ["src/**/*.ts", "src/index.ts"],
   "exclude": ["node_modules", "**/*.spec.ts"]
 }
