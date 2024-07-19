@@ -6,10 +6,10 @@
     "outDir": "./dist",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node", "index.d.ts"],
+    "types": ["node"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "typeRoots": ["./types", "./node_modules/@types"]
+    "typeRoots": ["./types/wiggly-js.d.ts", "./node_modules/@types"]
   },
   "include": ["src/**/*.ts", "./index.ts"],
   "exclude": ["node_modules", "**/*.spec.ts"]
