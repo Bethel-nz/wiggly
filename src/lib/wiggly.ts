@@ -39,9 +39,12 @@ class Wiggly {
     return segment;
   }
 
-  private is_middleware_file(file_name: string): boolean {
+  private is_middleware_file(file_name: string, directory: string): boolean {
     return (
-      file_name.startsWith('_middleware') || file_name.startsWith('_index')
+      (file_name.includes('_middleware') ||
+        file_name.includes('_index') ||
+        file_name.startsWith('_')) &&
+      directory === this.default_middleware_dir
     );
   }
 
@@ -71,7 +74,7 @@ class Wiggly {
         const filePath = path.join(this.default_middleware_dir, file);
         if (
           this.is_valid_file(filePath) &&
-          this.is_middleware_file(file) &&
+          this.is_middleware_file(file, this.default_middleware_dir) &&
           fs.statSync(filePath).size > 0
         ) {
           const middleware = require(filePath).default._;

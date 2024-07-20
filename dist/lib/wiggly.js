@@ -29,8 +29,11 @@ class Wiggly {
         }
         return segment;
     }
-    is_middleware_file(file_name) {
-        return (file_name.startsWith('_middleware') || file_name.startsWith('_index'));
+    is_middleware_file(file_name, directory) {
+        return ((file_name.includes('_middleware') ||
+            file_name.includes('_index') ||
+            file_name.startsWith('_')) &&
+            directory === this.default_middleware_dir);
     }
     applyMiddleware(directory, basePath = '/') {
         const middlewareFiles = [
@@ -53,7 +56,7 @@ class Wiggly {
             fs.readdirSync(this.default_middleware_dir).forEach((file) => {
                 const filePath = path.join(this.default_middleware_dir, file);
                 if (this.is_valid_file(filePath) &&
-                    this.is_middleware_file(file) &&
+                    this.is_middleware_file(file, this.default_middleware_dir) &&
                     fs.statSync(filePath).size > 0) {
                     const middleware = require(filePath).default._;
                     if (typeof middleware === 'function') {
