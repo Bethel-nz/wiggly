@@ -1,6 +1,6 @@
 {
   "name": "wiggly.js",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "File-based routing framework based on Hono.js",
   "scripts": {
     "build": "tsc",
