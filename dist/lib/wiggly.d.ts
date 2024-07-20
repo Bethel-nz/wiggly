@@ -3,6 +3,10 @@ declare class Wiggly {
     private app;
     private default_dir;
     private default_middleware_dir;
+    private server;
+    private port_number;
+    private app_base_path;
+    private server_is_node;
     constructor(default_args: {
         app?: Hono;
         base_path?: string;
@@ -20,8 +24,11 @@ declare class Wiggly {
     private handleFile;
     private processRouteFile;
     private applyRouteMethod;
+    private clearRoutesAndMiddleware;
+    private startServer;
+    private restartServer;
     private startFileWatcher;
-    serve(args: {
+    serve({ port, is_node_server, }: {
         port: number;
         is_node_server: boolean;
     }): Promise<void>;

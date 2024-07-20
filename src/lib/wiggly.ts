@@ -8,6 +8,10 @@ class Wiggly {
   private app: Hono;
   private default_dir: string;
   private default_middleware_dir: string;
+  private server: any;
+  private port_number: number;
+  private app_base_path: string;
+  private server_is_node: boolean;
 
   constructor(default_args: {
     app?: Hono;
@@ -15,6 +19,9 @@ class Wiggly {
     middleware_dir?: string;
     routes_dir?: string;
   }) {
+    this.port_number = 8080;
+    this.server_is_node = true;
+    this.app_base_path = default_args.base_path!;
     this.app = default_args.app
       ? default_args.app
       : new Hono().basePath(default_args.base_path!);
@@ -81,7 +88,7 @@ class Wiggly {
           if (typeof middleware === 'function') {
             this.app.use('*', middleware);
           }
-        }
+        } else return;
       });
     }
   }
@@ -187,6 +194,34 @@ class Wiggly {
     }
   }
 
+  private clearRoutesAndMiddleware(): void {
+    this.app = new Hono().basePath(this.app_base_path);
+  }
+
+  private startServer(): void {
+    if (this.server_is_node) {
+      this.server = node_serve({
+        fetch: this.app.fetch,
+        port: this.port_number,
+      });
+    } else {
+      this.server = Bun.serve({
+        fetch: this.app.fetch,
+        port: this.port_number,
+      });
+    }
+  }
+
+  private restartServer(): void {
+    if (this.server) {
+      this.server.close();
+    }
+
+    this.applyGlobalMiddleware();
+    this.build_routes();
+    this.startServer();
+  }
+
   private startFileWatcher(): void {
     const watcher = chokidar.watch([
       this.default_middleware_dir,
@@ -194,32 +229,29 @@ class Wiggly {
     ]);
     watcher.on('all', (event, path) => {
       if (['add', 'change', 'unlink'].includes(event)) {
-        this.applyGlobalMiddleware();
-        this.build_routes();
+        this.clearRoutesAndMiddleware();
+        this.restartServer();
       }
     });
   }
 
-  async serve(args: { port: number; is_node_server: boolean }): Promise<void> {
+  async serve({
+    port = this.port_number,
+    is_node_server,
+  }: {
+    port: number;
+    is_node_server: boolean;
+  }): Promise<void> {
     try {
+      this.port_number = port;
+      this.server_is_node = is_node_server;
       this.applyGlobalMiddleware();
       this.build_routes();
 
-      if (args.is_node_server) {
-        await node_serve({
-          fetch: this.app.fetch,
-          port: args.port,
-        });
-      } else {
-        await Bun.serve({
-          fetch: this.app.fetch,
-          port: args.port,
-        });
-      }
-
       this.startFileWatcher();
+      this.startServer();
 
-      console.log(`Server Running On http://localhost:${args.port}`);
+      console.log(`Server Running On http://localhost:${port}`);
     } catch (error) {
       console.error(error);
     }

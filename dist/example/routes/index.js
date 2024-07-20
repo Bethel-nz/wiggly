@@ -1,7 +1,7 @@
 export default {
     get: (c) => {
         return c.json({
-            message: `Hello 👋 from root route`,
+            message: `Hello 👋 from root route 😂`,
         });
     },
     post: (c) => {
