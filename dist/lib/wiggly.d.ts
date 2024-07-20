@@ -7,8 +7,10 @@ declare class Wiggly {
     private port_number;
     private app_base_path;
     private server_is_node;
+    private use_logger;
     constructor(default_args: {
         app?: Hono;
+        logger: boolean;
         base_path?: string;
         middleware_dir?: string;
         routes_dir?: string;
