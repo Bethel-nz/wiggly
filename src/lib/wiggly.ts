@@ -214,7 +214,7 @@ class Wiggly {
 
   private restartServer(): void {
     if (this.server) {
-      this.server.close();
+      this.server = null;
     }
 
     this.applyGlobalMiddleware();

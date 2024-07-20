@@ -177,7 +177,7 @@ class Wiggly {
     }
     restartServer() {
         if (this.server) {
-            this.server.close();
+            this.server = null;
         }
         this.applyGlobalMiddleware();
         this.build_routes();
