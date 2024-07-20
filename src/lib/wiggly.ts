@@ -3,6 +3,7 @@ import path from 'path';
 import chokidar from 'chokidar';
 import { serve as node_serve } from '@hono/node-server';
 import { Hono } from 'hono';
+import { logger } from 'hono/logger';
 
 class Wiggly {
   private app: Hono;
@@ -12,18 +13,21 @@ class Wiggly {
   private port_number: number;
   private app_base_path: string;
   private server_is_node: boolean;
+  private use_logger: boolean;
 
   constructor(default_args: {
     app?: Hono;
+    logger: boolean;
     base_path?: string;
     middleware_dir?: string;
     routes_dir?: string;
   }) {
+    this.use_logger = default_args.logger!;
     this.port_number = 8080;
     this.server_is_node = true;
     this.app_base_path = default_args.base_path!;
     this.app = default_args.app
-      ? default_args.app
+      ? default_args.app.basePath(default_args.base_path!)
       : new Hono().basePath(default_args.base_path!);
     const currentDir = process.cwd();
     this.default_middleware_dir = default_args.middleware_dir
@@ -91,6 +95,8 @@ class Wiggly {
         } else return;
       });
     }
+
+    if (this.use_logger) this.app.use('*', logger());
   }
 
   private convertToHonoRoute(filePath: string): string {
@@ -214,7 +220,7 @@ class Wiggly {
 
   private restartServer(): void {
     if (this.server) {
-      this.server = null;
+      return;
     }
 
     this.applyGlobalMiddleware();
