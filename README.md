@@ -147,15 +147,16 @@ const hono_app = new Hono();
 
 // Initialize Wiggly with base path
 // Middleware directory and routes directory are by default `/routes` in your project root but should be specified here if different
-const wiggle = new Wiggly({
-  app: hono_app,
-  base_path: '/api/v1/',
-  middleware_dir: 'src/example/routes/middleware',
-  routes_dir: 'src/example/routes',
+const wiggly = new Wiggly({
+  port: 3000,
+  app: new Hono(),
+  basePath: '/api/v1',
+  routesDir: './src/routes',
+  middlewareDir: './src/middleware',
+  useLogger: true,
+  useNode: true,
 });
-
-// Load routes
-wiggle.build_routes();
+wiggly.serve();
 
 // Start the server
 wiggle.serve();
