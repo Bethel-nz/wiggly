@@ -1,85 +1,93 @@
 import fs from 'fs';
 import path from 'path';
-import chokidar from 'chokidar';
-import { serve as node_serve } from '@hono/node-server';
 import { Hono } from 'hono';
-import { logger } from 'hono/logger';
+import pino from 'pino';
+import { RouteParser } from './RouteParser';
+import { ServerManager } from './servermanager';
+import { FileWatcher } from './filewatcher';
+import { MiddlewareHandler } from './middlewarehandler';
+import { ErrorHandler } from './errorHandler';
+const logger = pino({
+    level: process.env.LOG_LEVEL || 'info',
+});
+/**
+ * Wiggly - A file-based routing framework based on Hono.js
+ *
+ * @example
+ * const wiggly = new Wiggly({
+ *   port: 3000, // Optional, defaults to 8080 or your environment's PORT
+ *   app: new Hono(), // Optional, defaults to built-in Hono app or you can pass your own Hono instance
+ *   basePath: '/api', // Optional, defaults to '/api/v1'
+ *   routesDir: './src/routes', // Optional, defaults to './routes'
+ *   middlewareDir: './src/middleware', // Optional, defaults to './middleware'
+ *   useLogger: true //  defaults to false
+ *   useNode: true // defaults to false or it uses bun
+ * });
+ * wiggly.serve({ port: 3000 });
+ */
 class Wiggly {
     app;
     default_dir;
     default_middleware_dir;
-    server;
+    serverManager;
+    fileWatcher;
+    middlewareHandler;
     port_number;
     app_base_path;
     server_is_node;
-    use_logger;
+    /**
+     * Initializes a new instance of the Wiggly class.
+     * @param default_args Configuration arguments.
+     */
     constructor(default_args) {
-        this.use_logger = default_args.logger;
-        this.port_number = 8080;
-        this.server_is_node = true;
-        this.app_base_path = default_args.base_path;
+        this.port_number =
+            default_args.port || parseInt(process.env.PORT || '8080', 10);
+        this.server_is_node = default_args.useNode;
+        this.app_base_path = default_args.basePath || '/api/';
         this.app = default_args.app
-            ? default_args.app.basePath(default_args.base_path)
-            : new Hono().basePath(default_args.base_path);
+            ? default_args.app.basePath(this.app_base_path)
+            : new Hono().basePath(this.app_base_path);
         const currentDir = process.cwd();
-        this.default_middleware_dir = default_args.middleware_dir
-            ? path.resolve(currentDir, default_args.middleware_dir)
-            : `${process.cwd()}/routes/middleware`;
-        this.default_dir = default_args.routes_dir
-            ? path.resolve(currentDir, default_args.routes_dir)
-            : `${process.cwd()}/routes`;
-        this.applyGlobalMiddleware();
+        this.default_middleware_dir = default_args.middlewareDir
+            ? path.resolve(currentDir, default_args.middlewareDir)
+            : `${currentDir}/routes/middleware`;
+        this.default_dir = default_args.routesDir
+            ? path.resolve(currentDir, default_args.routesDir)
+            : `${currentDir}/routes`;
+        this.middlewareHandler = new MiddlewareHandler(this.app, default_args.useLogger, this.default_middleware_dir, this.app_base_path);
+        this.serverManager = new ServerManager(this.app, this.port_number, this.server_is_node);
+        this.fileWatcher = new FileWatcher([this.default_middleware_dir, this.default_dir], () => {
+            this.clearRoutesAndMiddleware();
+            this.restartServer();
+        });
+        // Apply global middleware once
+        this.middlewareHandler.applyGlobalMiddleware();
     }
+    /**
+     * Validates if a file has a supported extension.
+     * @param file_path The path of the file to validate.
+     * @returns True if valid, else false.
+     */
     is_valid_file(file_path) {
         return ['.js', '.ts'].includes(path.extname(file_path));
     }
-    parse_route_segment(segment) {
-        if (segment.startsWith('[') && segment.endsWith(']')) {
-            return `:${segment.slice(1, -1)}`;
-        }
-        return segment;
-    }
+    /**
+     * Determines if a file is a middleware file.
+     * @param file_name The name of the file.
+     * @param directory The directory of the file.
+     * @returns True if it's a middleware file, else false.
+     */
     is_middleware_file(file_name, directory) {
         return ((file_name.includes('_middleware') ||
             file_name.includes('_index') ||
             file_name.startsWith('_')) &&
             directory === this.default_middleware_dir);
     }
-    applyMiddleware(directory, basePath = '/') {
-        const middlewareFiles = [
-            path.join(directory, '_middleware.ts'),
-            path.join(directory, '_index.ts'),
-        ];
-        middlewareFiles.forEach((filePath) => {
-            if (fs.existsSync(filePath) &&
-                this.is_valid_file(filePath) &&
-                fs.statSync(filePath).size > 0) {
-                const middleware = require(filePath).default._;
-                if (typeof middleware === 'function') {
-                    this.app.use(`${basePath}/*`, middleware);
-                }
-            }
-        });
-    }
-    applyGlobalMiddleware() {
-        if (fs.existsSync(this.default_middleware_dir)) {
-            fs.readdirSync(this.default_middleware_dir).forEach((file) => {
-                const filePath = path.join(this.default_middleware_dir, file);
-                if (this.is_valid_file(filePath) &&
-                    this.is_middleware_file(file, this.default_middleware_dir) &&
-                    fs.statSync(filePath).size > 0) {
-                    const middleware = require(filePath).default._;
-                    if (typeof middleware === 'function') {
-                        this.app.use('*', middleware);
-                    }
-                }
-                else
-                    return;
-            });
-        }
-        if (this.use_logger)
-            this.app.use('*', logger());
-    }
+    /**
+     * Converts a file path to a Hono-compatible route.
+     * @param filePath The file path to convert.
+     * @returns The Hono route path.
+     */
     convertToHonoRoute(filePath) {
         const routeName = path.basename(filePath, path.extname(filePath));
         if (routeName.startsWith('_'))
@@ -89,7 +97,7 @@ class Wiggly {
         const dirPath = path.dirname(relativePath);
         const pathSegments = dirPath
             .split(path.sep)
-            .map(this.parse_route_segment)
+            .map(RouteParser.parseSegment)
             .filter(Boolean);
         const finalRouteName = isIndexFile ? '' : `/${routeName}`;
         const routePath = `/${[...pathSegments, finalRouteName].join('/')}`
@@ -100,6 +108,11 @@ class Wiggly {
             return '/';
         return routePath.replace(/\[(\w+)\]/g, ':$1');
     }
+    /**
+     * Builds routes by scanning the specified directory.
+     * @param directory The directory to scan.
+     * @param base_path The base path for the routes.
+     */
     build_routes(directory = this.default_dir, base_path = '') {
         if (!fs.existsSync(directory)) {
             console.log(`Directory "${directory}" does not exist.`);
@@ -118,7 +131,7 @@ class Wiggly {
         });
     }
     handleDirectory(dirPath, basePath) {
-        const segment = this.parse_route_segment(path.basename(dirPath));
+        const segment = RouteParser.parseSegment(path.basename(dirPath));
         this.build_routes(dirPath, `${basePath}/${segment}`);
         const indexPath = path.join(dirPath, 'index.ts');
         if (fs.existsSync(indexPath) && this.is_valid_file(indexPath)) {
@@ -131,7 +144,7 @@ class Wiggly {
     processRouteFile(filePath, baseDir) {
         const route = require(filePath).default;
         const route_path = this.convertToHonoRoute(filePath);
-        this.applyMiddleware(baseDir, route_path);
+        this.middlewareHandler.applyMiddleware(baseDir, route_path);
         Object.keys(route).forEach((method) => {
             const handler = route[method];
             if (typeof handler === 'function') {
@@ -160,58 +173,35 @@ class Wiggly {
                 this.app.use(routePath, handler);
                 break;
             default:
-                console.warn(`Unknown method ${method}`);
+                console.log(`Unknown method ${method}`);
         }
     }
     clearRoutesAndMiddleware() {
         this.app = new Hono().basePath(this.app_base_path);
-    }
-    startServer() {
-        if (this.server_is_node) {
-            this.server = node_serve({
-                fetch: this.app.fetch,
-                port: this.port_number,
-            });
-        }
-        else {
-            this.server = Bun.serve({
-                fetch: this.app.fetch,
-                port: this.port_number,
-            });
-        }
+        this.middlewareHandler.reset();
     }
     restartServer() {
-        if (this.server) {
-            return;
-        }
-        this.applyGlobalMiddleware();
+        this.serverManager.stop();
+        this.middlewareHandler.applyGlobalMiddleware();
         this.build_routes();
-        this.startServer();
+        this.serverManager.start();
     }
-    startFileWatcher() {
-        const watcher = chokidar.watch([
-            this.default_middleware_dir,
-            this.default_dir,
-        ]);
-        watcher.on('all', (event, path) => {
-            if (['add', 'change', 'unlink'].includes(event)) {
-                this.clearRoutesAndMiddleware();
-                this.restartServer();
-            }
-        });
-    }
-    async serve({ port = this.port_number, is_node_server, }) {
+    /**
+     * Starts the server with the specified configuration.
+     * @param config Server configuration.
+     */
+    async serve() {
         try {
-            this.port_number = port;
-            this.server_is_node = is_node_server;
-            this.applyGlobalMiddleware();
+            this.port_number = this.port_number;
+            this.server_is_node = this.server_is_node;
             this.build_routes();
-            this.startFileWatcher();
-            this.startServer();
-            console.log(`Server Running On http://localhost:${port}`);
+            this.fileWatcher.start();
+            this.serverManager = new ServerManager(this.app, this.port_number, this.server_is_node);
+            this.serverManager.start();
+            console.log(`Server Running On http://localhost:${this.port_number}`);
         }
         catch (error) {
-            console.error(error);
+            ErrorHandler.handleError(error, 'Server Error');
         }
     }
 }

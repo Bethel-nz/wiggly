@@ -18,7 +18,7 @@ npm install wiggly.js
 
 `Wiggly` expects a specific directory structure for routes and middleware. The directory structure should look like this, each route can have children and deeply nested children:
 
-```
+```text
 project-root/
 ├── routes/
 │   ├── middleware/

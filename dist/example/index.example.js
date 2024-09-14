@@ -6,13 +6,11 @@ app.use('*', logger());
 // Initialize Wiggly with base path
 const wiggle = new Wiggly({
     app,
-    logger: false,
-    base_path: '/api/v1/',
-    middleware_dir: './src/example/routes/middleware',
-    routes_dir: './src/example/routes',
-});
-wiggle.build_routes();
-wiggle.serve({
+    useLogger: false,
+    basePath: '/api/v1/',
+    middlewareDir: './src/example/routes/middleware',
+    routesDir: './src/example/routes',
     port: 5790,
-    is_node_server: true,
+    useNode: true,
 });
+wiggle.serve();
