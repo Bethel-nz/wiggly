@@ -10,14 +10,14 @@ export default {
     const start = Date.now();
     const method = c.req.method;
     const url = c.req.url;
-    console.log(`[${method}] ${url} - Request started`);
+    // console.log(`[${method}] ${url} - Request started`);
     c.set('url', `google.com`);
     await next();
 
     const duration = Date.now() - start;
     const status = c.res.status;
-    console.log(
-      `[${method}] ${url} - Response status: ${status} - Duration: ${duration}ms`
-    );
+    // console.log(
+    //   `[${method}] ${url} - Response status: ${status} - Duration: ${duration}ms`
+    // );
   },
 };

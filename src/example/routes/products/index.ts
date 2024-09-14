@@ -1,15 +1,15 @@
 import { Context } from 'hono';
 
 export default {
-  get: (c: Context) => {
+  get: async (c: Context) => {
     const exampleVariable = c.get('exampleVariable');
     const url = c.get('url');
     return c.json({
       message: `detail route ${exampleVariable}, ${url}`,
     });
   },
-  post: (c: Context) => {
-    const body = c.req.json();
+  post: async (c: Context) => {
+    const body = await c.req.json();
     return c.json({
       message: body,
     });
