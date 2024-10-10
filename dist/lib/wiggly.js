@@ -35,11 +35,13 @@ class Wiggly {
     port_number;
     app_base_path;
     server_is_node;
+    useLog;
     /**
      * Initializes a new instance of the Wiggly class.
      * @param default_args Configuration arguments.
      */
     constructor(default_args) {
+        this.useLog = default_args.useLogger;
         this.port_number =
             default_args.port || parseInt(process.env.PORT || '8080', 10);
         this.server_is_node = default_args.useNode;
@@ -54,13 +56,13 @@ class Wiggly {
         this.default_dir = default_args.routesDir
             ? path.resolve(currentDir, default_args.routesDir)
             : `${currentDir}/routes`;
-        this.middlewareHandler = new MiddlewareHandler(this.app, default_args.useLogger, this.default_middleware_dir, this.app_base_path);
-        this.serverManager = new ServerManager(this.app, this.port_number, this.server_is_node);
         this.fileWatcher = new FileWatcher([this.default_middleware_dir, this.default_dir], () => {
             this.clearRoutesAndMiddleware();
             this.restartServer();
         });
         // Apply global middleware once
+        this.middlewareHandler = new MiddlewareHandler(this.app, default_args.useLogger, this.default_middleware_dir, this.app_base_path);
+        this.serverManager = new ServerManager(this.app, this.port_number, this.server_is_node);
         this.middlewareHandler.applyGlobalMiddleware();
     }
     /**
@@ -118,6 +120,8 @@ class Wiggly {
             console.log(`Directory "${directory}" does not exist.`);
             return;
         }
+        if (directory.includes('dist'))
+            return;
         const files = fs.readdirSync(directory);
         files.forEach((file) => {
             const file_path = path.join(directory, file);
@@ -186,6 +190,22 @@ class Wiggly {
         this.build_routes();
         this.serverManager.start();
     }
+    generateServerInfo() {
+        const routeCount = this.app.routes.length;
+        const nodeOrBun = this.server_is_node ? 'Node.js' : 'Bun';
+        const loggerStatus = this.useLog ? 'enabled' : 'disabled';
+        return `
+    🚀 Wiggly v1.1 is up and running!
+    🌐 Server: ${nodeOrBun}
+    🔗 Base URL: http://localhost:${this.port_number}${this.app_base_path}
+    🛣️  Routes: ${routeCount} route(s) registered
+    📁 Routes Directory: ${this.default_dir}
+    📁 Middleware Directory: ${this.default_middleware_dir}
+    📝 Logging: ${loggerStatus}
+    
+    Happy coding! 🎉
+    `;
+    }
     /**
      * Starts the server with the specified configuration.
      * @param config Server configuration.
@@ -198,7 +218,7 @@ class Wiggly {
             this.fileWatcher.start();
             this.serverManager = new ServerManager(this.app, this.port_number, this.server_is_node);
             this.serverManager.start();
-            console.log(`Server Running On http://localhost:${this.port_number}`);
+            console.log(this.generateServerInfo());
         }
         catch (error) {
             ErrorHandler.handleError(error, 'Server Error');

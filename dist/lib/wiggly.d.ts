@@ -24,6 +24,7 @@ declare class Wiggly {
     private port_number;
     private app_base_path;
     private server_is_node;
+    private useLog;
     /**
      * Initializes a new instance of the Wiggly class.
      * @param default_args Configuration arguments.
@@ -68,6 +69,7 @@ declare class Wiggly {
     private applyRouteMethod;
     private clearRoutesAndMiddleware;
     private restartServer;
+    private generateServerInfo;
     /**
      * Starts the server with the specified configuration.
      * @param config Server configuration.

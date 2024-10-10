@@ -1,8 +1,6 @@
 import chokidar from 'chokidar';
 import debounce from 'lodash.debounce';
-import pino from 'pino';
-
-const logger = pino();
+import path from 'path';
 
 export class FileWatcher {
   private paths: string[];
@@ -24,7 +22,7 @@ export class FileWatcher {
       usePolling: false,
       interval: 100,
       binaryInterval: 300,
-      ignored: /(^|[\/\\])\../,
+      ignored: /(^|[\/\\])\../, // ignore dotfiles
       depth: 99,
       awaitWriteFinish: {
         stabilityThreshold: 200,

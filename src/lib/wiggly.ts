@@ -39,6 +39,7 @@ class Wiggly {
   private port_number: number;
   private app_base_path: string;
   private server_is_node: boolean;
+  private useLog: boolean;
 
   /**
    * Initializes a new instance of the Wiggly class.
@@ -53,6 +54,7 @@ class Wiggly {
     port: number;
     useNode: boolean;
   }) {
+    this.useLog = default_args.useLogger;
     this.port_number =
       default_args.port || parseInt(process.env.PORT || '8080', 10);
     this.server_is_node = default_args.useNode;
@@ -68,6 +70,15 @@ class Wiggly {
       ? path.resolve(currentDir, default_args.routesDir)
       : `${currentDir}/routes`;
 
+    this.fileWatcher = new FileWatcher(
+      [this.default_middleware_dir, this.default_dir],
+      () => {
+        this.clearRoutesAndMiddleware();
+        this.restartServer();
+      }
+    );
+
+    // Apply global middleware once
     this.middlewareHandler = new MiddlewareHandler(
       this.app,
       default_args.useLogger,
@@ -79,15 +90,7 @@ class Wiggly {
       this.port_number,
       this.server_is_node
     );
-    this.fileWatcher = new FileWatcher(
-      [this.default_middleware_dir, this.default_dir],
-      () => {
-        this.clearRoutesAndMiddleware();
-        this.restartServer();
-      }
-    );
 
-    // Apply global middleware once
     this.middlewareHandler.applyGlobalMiddleware();
   }
 
@@ -152,6 +155,7 @@ class Wiggly {
     directory: string = this.default_dir,
     base_path: string = ''
   ): void {
+    if (directory.includes('dist')) return;
     if (!fs.existsSync(directory)) {
       console.log(`Directory "${directory}" does not exist.`);
       return;
@@ -238,6 +242,24 @@ class Wiggly {
     this.serverManager.start();
   }
 
+  private generateServerInfo(): string {
+    const routeCount = this.app.routes.length;
+    const nodeOrBun = this.server_is_node ? 'Node.js' : 'Bun';
+    const loggerStatus = this.useLog ? 'enabled' : 'disabled';
+
+    return `
+    🚀 Wiggly v1.1 is up and running!
+    🌐 Server: ${nodeOrBun}
+    🔗 Base URL: http://localhost:${this.port_number}${this.app_base_path}
+    🛣️  Routes: ${routeCount} route(s) registered
+    📁 Routes Directory: ${this.default_dir}
+    📁 Middleware Directory: ${this.default_middleware_dir}
+    📝 Logging: ${loggerStatus}
+    
+    Happy coding! 🎉
+    `;
+  }
+
   /**
    * Starts the server with the specified configuration.
    * @param config Server configuration.
@@ -256,7 +278,7 @@ class Wiggly {
       );
       this.serverManager.start();
 
-      console.log(`Server Running On http://localhost:${this.port_number}`);
+      console.log(this.generateServerInfo());
     } catch (error) {
       ErrorHandler.handleError(error as Error, 'Server Error');
     }
