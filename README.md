@@ -156,7 +156,6 @@ const wiggly = new Wiggly({
   useLogger: true,
   useNode: true,
 });
-wiggly.serve();
 
 // Start the server
 wiggle.serve();
@@ -242,7 +241,6 @@ const wiggle = new Wiggly({
   routes_dir: 'src/example/routes',
 });
 
-wiggle.build_routes();
 wiggle.serve(8080);
 ```
 
