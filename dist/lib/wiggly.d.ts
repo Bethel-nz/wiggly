@@ -6,7 +6,7 @@ import { Hono } from 'hono';
  * const wiggly = new Wiggly({
  *   port: 3000, // Optional, defaults to 8080 or your environment's PORT
  *   app: new Hono(), // Optional, defaults to built-in Hono app or you can pass your own Hono instance
- *   basePath: '/api', // Optional, defaults to '/api/v1'
+ *   basePath: '/api', // Optional, defaults to '/api/'
  *   routesDir: './src/routes', // Optional, defaults to './routes'
  *   middlewareDir: './src/middleware', // Optional, defaults to './middleware'
  *   useLogger: true //  defaults to false
