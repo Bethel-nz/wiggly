@@ -1,17 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import { Hono } from 'hono';
-import pino from 'pino';
 
 import { RouteParser } from './RouteParser';
 import { ServerManager } from './servermanager';
 import { FileWatcher } from './filewatcher';
 import { MiddlewareHandler } from './middlewarehandler';
 import { ErrorHandler } from './errorHandler';
-
-const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
-});
 
 /**
  * Wiggly - A file-based routing framework based on Hono.js
