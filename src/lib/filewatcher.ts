@@ -1,6 +1,5 @@
 import chokidar from 'chokidar';
 import debounce from 'lodash.debounce';
-import path from 'path';
 
 export class FileWatcher {
   private paths: string[];
