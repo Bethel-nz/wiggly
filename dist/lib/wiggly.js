@@ -116,12 +116,12 @@ class Wiggly {
      * @param base_path The base path for the routes.
      */
     build_routes(directory = this.default_dir, base_path = '') {
+        if (directory.includes('dist'))
+            return;
         if (!fs.existsSync(directory)) {
             console.log(`Directory "${directory}" does not exist.`);
             return;
         }
-        if (directory.includes('dist'))
-            return;
         const files = fs.readdirSync(directory);
         files.forEach((file) => {
             const file_path = path.join(directory, file);
