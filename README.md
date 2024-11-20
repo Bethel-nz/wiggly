@@ -1,4 +1,4 @@
-# Wiggly Documentation
+# Wiggly Documentation [Archived]
 
 ## Introduction
 
